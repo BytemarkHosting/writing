@@ -1,6 +1,6 @@
-From now on, you should see a delightful lock <img src="/assets/images/blog/https/ssl-0-lock.png" /> next to [https://konklone.com](https://konklone.com) in your browser's URL bar, because I've switched this site to use HTTPS. I paid **$0** for the trouble.
+If you want to see a delightful lock <img src="/assets/images/blog/https/ssl-0-lock.png" /> next to your domain in your browser's URL bar, switch your site to use HTTPS. Here's how to pay **£0** for the trouble.
 
-Why you should bother doing the same:
+Why you should bother doing this:
 
 * SSL's not perfect, but we need to [make surveillance as expensive as possible](http://www.theguardian.com/world/2013/sep/05/nsa-how-to-remain-secure-surveillance)
 * For privacy not to be suspicious, [privacy should be on by default](http://www.tbray.org/ongoing/When/201x/2012/12/02/HTTPS)
@@ -18,31 +18,27 @@ More importantly, if your certificate needs to be revoked someday, StartCom will
 
 Still, StartCom makes getting started with SSL simple and inexpensive. Their website is difficult to use at first — especially if you're new to the concepts and terminology behind SSL certificates (like I was). Fortunately, it's not actually that hard; it's just a lot of small steps.
 
-Below, we'll go step by step through signing up with StartSSL and creating your certificate. We'll also cover installing it via nginx, but you can use the certificate with whatever web server you want.
-
-<div class="callout">
-<strong>Update:</strong> You may notice that my blog is now using Comodo, not StartSSL. I've been using my blog to test out Comodo and Namecheap, but I still recommend StartSSL and use it on <a href="https://isitchristmas.com/">my</a> <a href="https://oversight.io/">other</a> <a href="https://shaaaaaaaaaaaaa.com/">sites</a>.
-</div>
+Below, we'll go step by step through signing up with StartSSL and creating your certificate. We'll also cover installing it via Symbiosis, but you can use the certificate with whatever web server you want such as nginx.
 
 ## Register with StartSSL
 
 To get started, [visit their signup page](https://www.startssl.com/?app=11&action=regform) and enter your information.
 
-<img src="/assets/images/blog/https/ssl-1-signup.png" class="block upper border" />
+<img src="/assets/images/blog/https/ssl-1-signup.png" class="block upper border" alt="SSL signup image 1"/>
 
 They'll email you a verification code. They tell you to **not close the tab** or navigate away from it, so just keep it open until you get the code, and can paste it in.
 
-<img src="/assets/images/blog/https/ssl-2-signup-verify.png" class="block upper border" />
+<img src="/assets/images/blog/https/ssl-2-signup-verify.png" class="block upper border" alt="SSL signup image 2 - verify" />
 
 You'll need to wait for certification, but it should only take a few minutes. Once you're approved, they'll email you a special link and a verification code to type in.
 
 That'll bring you to a screen to generate a private key. They're generating you this private key inside your browser, using the ["keygen" tag](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/keygen). However, **this isn't the key you use to make your SSL certificate**. They're using it to create a separate "authentication certificate" that you will use to log in to StartSSL's control panel going forward. You'll make a separate certificate for your website later.
 
-<img src="/assets/images/blog/https/ssl-3-auth-key-generate.png" class="block upper border" />
+<img src="/assets/images/blog/https/ssl-3-auth-key-generate.png" class="block upper border" alt="SSL signup image 3 - auth key generate"/>
 
 Finally, they'll ask you to "Install" the certificate:
 
-<img src="/assets/images/blog/https/ssl-4-auth-cert.png" class="block upper border" />
+<img src="/assets/images/blog/https/ssl-4-auth-cert.png" class="block upper border" alt="SSL sigup image 4 install certificate" />
 
 Which installs your authentication certificate directly into your browser.
 
@@ -132,76 +128,18 @@ It will ask you to confirm. If it looks right, hit "Continue".
 <strong>Note</strong>: It's possible you'll get hit with a "Additional Check Required!" step here, where you wait for approval by email. It didn't happen to me the first time, but did the second time, and my approval arrived in ~30 minutes. Upon approval, you'll need to visit the "Tool Box" tab and visit "Retrieve Certificate" to get your cert.
 </div>
 
-That should do it — your certificate will appear in a text field for you to copy and paste into a file. Call it whatever you want, but the rest of the guide will refer to it as `mydomain.com.crt`.
+That should do it — your certificate will appear in a text field for you to copy and paste into a file. Call it whatever you want, but the rest of the guide will refer to it as `ssl.crt`.
 
-## Installing the certificate in nginx
+## Installing the certificate in Symbiosis
 
-If you have direct access to your web server and its nginx configuration, here's how to install your certificate. If you don't, check out [setup options for other common hosts](#setup-with-other-common-hosts) or [for Apache](https://www.insecure.ws/2013/10/11/ssltls-configuration-for-apache-mod_ssl/).
+If you use [Bytemark Symbiosis](http://www.bytemark.co.uk/symbiosis), here's how to install your certificate. If you don't, check out [the original blog post this was forked from](https://konklone.com/post/switch-to-https-now-for-free#setup-with-other-common-hosts) which includes instructions for nginx and other common hosts.
 
-First, make sure **port 443 is open** on your web server. Many web hosts automatically keep this port open for you. If you're using Amazon Web Services, you'll need to make sure your instance's security group has port 443 open.
-
-Next, we're going to create the "certificate chain" that your web server will use. It contains your certificate, and StartSSL's intermediary certificate. (Including StartSSL's root cert is not necessary, because browsers ship with it already.) Download the intermediate certificate from StartSSL:
-
-```bash
-wget https://www.startssl.com/certs/class1/sha2/pem/sub.class1.server.sha2.ca.pem
-```
-
-Then concatenate your certificate with theirs:
-
-```bash
-cat mydomain.com.crt sub.class1.server.sha2.ca.pem > unified.crt
-```
-
-Finally, tell your web server about your unified certificate, and your decrypted private key. I use nginx — below is the bare minimum nginx configuration you need. It redirects all HTTP requests to HTTPS requests using a 301 permanent redirect, and points the server to the certificate and key.
-
-<script src="https://gist.github.com/konklone/6416795.js"></script>
-
-<div class="callout">
-You can also check out <a href="https://gist.github.com/konklone/6532544">a more complete HTTPS nginx configuration</a> that turns on <a href="http://www.chromium.org/spdy/spdy-whitepaper">SPDY</a>, <a href="https://en.wikipedia.org/wiki/HTTP_Strict_Transport_Security">HSTS</a>, SSL <a href="https://code.google.com/p/sslyze/wiki/SessionResumption">session resumption</a>, <a href="http://en.wikipedia.org/wiki/OCSP_stapling">OCSP stapling</a>, and enables <a href="https://www.eff.org/deeplinks/2013/08/pushing-perfect-forward-secrecy-important-web-privacy-protection">Forward Secrecy</a>.
-<br/><br/>
-Qualys' SSL Labs offers an excellent <a href="https://www.ssllabs.com/ssltest/analyze.html">SSL testing tool</a> you can use to see how you're doing.
-</div>
-
-Now, ensure your nginx configuration is okay (this also verifies that the key and certificate are in working order):
-
-```bash
-sudo nginx -t
-```
-
-Then restart nginx:
-
-```bash
-sudo service nginx restart
-```
-
-Cross your fingers and try it out in your browser! If all goes well, the <img src="/assets/images/blog/https/ssl-0-lock.png" /> will be yours.
-
-<div class="callout">
-<strong>Important:</strong> the StartSSL free Class 1 certificate is good for just <strong>1 year</strong>. Don't forget to renew it before then! Set a calendar reminder or something!
-</div>
-
-## Setup with other common hosts
-
-Many common hosts don't give you direct access to install a certificate yourself. In that case, you'll probably have to pay $$ for HTTPS, if it's possible at all.
-
-If you use:
-
-* **Amazon S3**, as of March 2014 they support **[free SSL for custom domains](http://aws.amazon.com/cloudfront/custom-ssl-domains/)** via CloudFront. Bear in mind this requires [SNI](https://en.wikipedia.org/wiki/Server_Name_Indication), which won't work for users running Internet Explorer on Windows XP or Android 2.x's default browser. It's also unsupported by Python 2.x. If that's a dealbreaker, then you'll have to pay an insane $600/month for a dedicated IP.
-* **Apache**, check out [kang's blog post](https://www.insecure.ws/linux/apache_ssl.html) on making an Apache config that gets the A rating from Qualys.
 * **Bytemark** and other servers using **[Symbiosis](https://www.bytemark.co.uk/hosting/symbiosis/)** for Debian support [simple SSL hosting as standard](http://symbiosis.bytemark.co.uk/docs/ch-ssl-hosting.html). Use the key generation guide above and name it `ssl.key`, following the Symbiosis documentation. Likewise, the certificate when generated should be `ssl.crt`. You'll also need [StartSSL's `ca-bundle.crt`](http://www.startssl.com/certs/) renamed to `ssl.bundle`.
-* **Github Pages**, they offer [undocumented HTTPS support](https://konklone.com/post/github-pages-now-supports-https-so-use-it) for `*.github.io` domains. However, they offer no HTTPS support at all for custom domains, so for that you'll have to look elsewhere (see below).
-* **Heroku**, you'll need to pay $20/month for their [SSL add-on](https://addons.heroku.com/ssl), and then use it to [set up an SSL endpoint](https://devcenter.heroku.com/articles/ssl-endpoint).
-* **Webfaction**, they [provide HTTPS support](http://docs.webfaction.com/user-guide/websites.html#secure-sites-https) at no extra charge. Go [Webfaction](https://www.webfaction.com/)!
 
+Qualys' SSL Labs offers an excellent <a href="https://www.ssllabs.com/ssltest/analyze.html">SSL testing tool</a> you can use to see how you're doing.
 
-If you need to **look elsewhere** because your host makes it too expensive or impossible to set up HTTPS, another option is to sign up for [CloudFlare](https://www.cloudflare.com/). You don't need to leave your current host to use them — they sit "in front" of your website and can speed it up in various ways. 
-
-CloudFlare [offers HTTPS to anyone for free](https://blog.cloudflare.com/introducing-universal-ssl/), but there are two big catches:
-
-* The free plan doesn't support clients using Windows XP or Python 2. To support older clients, you need a paid plan (which start at $20/month).
-* **All** CloudFlare plans can only encrypt between the visitor and CloudFlare. To ensure that the connection is encrypted all the way from the visitor to your website, you'll need to install your own certificate on your own web server anyway and tell CloudFlare to use and validate that certificate.
-
-The tradeoffs are yours to choose, and yours alone!
+**Important:** the StartSSL free Class 1 certificate is good for just <strong>1 year</strong>. Don't forget to renew it before then! Set a calendar reminder or something!
+</div>
 
 ## Mixed Content Warnings
 
@@ -217,12 +155,6 @@ Don't forget to **back up your SSL certificate, and its encrypted private key**.
 
 You should also **back up your authentication certificate** that you use to log in to StartSSL. StartSSL's FAQ [has instructions](https://www.startssl.com/?app=25#4) — it's a .p12 file containing a cert + key that you export from your browser.
 
-<div class="footer-text">
-<strong>More Resources</strong>
-<br/>
-<a href="http://www.troyhunt.com/2013/09/the-complete-guide-to-loading-free-ssl.html">Troy Hunt posted</a> his own guide to HTTPS with StartSSL for Windows and Azure users.
-<br/>
-<a href="http://arstechnica.com/security/2009/12/how-to-get-set-with-a-secure-sertificate-for-free/">Glenn Fleishman's 2009 article</a> covers setting up HTTPS with Mac OS X and Apache.
-<br/>
-<a href="http://www.westphahl.net/blog/2012/01/03/setting-up-https-with-nginx-and-startssl/">Simon Westphahl's 2012 blog post</a> describes setting up HTTPS using the command line and nginx.
-</div>
+## More resources
+
+* [Eric Mill's original blog post about switching to SSL, for free](https://konklone.com/post/switch-to-https-now-for-free) from which [this is forked](https://github.com/BytemarkHosting/writing/blob/writing/blog/switch-to-https-now-for-free.md). Everything written is licensed under [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/). 
